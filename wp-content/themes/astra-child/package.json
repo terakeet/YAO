@@ -1,0 +1,27 @@
+{
+  "name": "ACT2020",
+  "version": "1.0.0",
+  "description": "Astra Child Theme",
+  "main": "index.js",
+  "scripts": {
+    "build-css": "node-sass --source-map=true --output-style=compressed css/style-src.scss style.css",
+    "watch-css": "sane 'npm run build-css' --glob 'css/**/*.scss'",
+    "browser-sync": "browser-sync start --watch --files '**/*.php, css/*.css, js/*.min.js' --proxy 'https://dev.localhost:4041/' --no-ghost-mode --open ui",
+    "dev": "concurrently --names 'css,sync' --prefix-colors 'magenta,yellow,blue' 'npm:watch-css' 'npm:browser-sync'",
+    "build": "npm run build-css ; notify --title 'Production Build Complete' --message 'The production build task is complete.'"
+  },
+  "author": "Astra",
+  "devDependencies": {
+    "autoprefixer": "^9.7.4",
+    "babel-cli": "^6.26.0",
+    "babel-preset-env": "^1.7.0",
+    "browser-sync": "^2.26.7",
+    "concurrently": "^4.1.2",
+    "csswring": "^7.0.0",
+    "node-notifier-cli": "^1.2.0",
+    "node-sass": "^4.13.1",
+    "sane": "^4.1.0",
+    "stylelint": "^13.2.0"
+  },
+  "browserslist": "defaults"
+}
