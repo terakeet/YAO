@@ -121,6 +121,10 @@ if ( ! class_exists( 'UAGB_Helper' ) ) {
 		 */
 		public function __construct() {
 
+			if ( ! defined( 'FS_CHMOD_FILE' ) ) {
+				define( 'FS_CHMOD_FILE', ( fileperms( ABSPATH . 'index.php' ) & 0777 | 0644 ) );
+			}
+
 			require UAGB_DIR . 'classes/class-uagb-config.php';
 			require UAGB_DIR . 'classes/class-uagb-block-helper.php';
 
@@ -133,6 +137,7 @@ if ( ! class_exists( 'UAGB_Helper' ) ) {
 			add_action( 'wp_head', array( $this, 'frontend_gfonts' ), 120 );
 			add_action( 'wp_head', array( $this, 'print_stylesheet' ), 80 );
 			add_action( 'wp_footer', array( $this, 'print_script' ), 1000 );
+			add_filter( 'redirect_canonical', array( $this, 'override_canonical' ), 1, 2 );
 		}
 
 		/**
@@ -167,7 +172,7 @@ if ( ! class_exists( 'UAGB_Helper' ) ) {
 				$file_handler = self::$css_file_handler;
 
 				if ( isset( $file_handler['css_url'] ) ) {
-					wp_enqueue_style( 'uag-style', $file_handler['css_url'], array(), '', 'all' );
+					wp_enqueue_style( 'uag-style', $file_handler['css_url'], array(), UAGB_VER, 'all' );
 				}
 				if ( isset( $file_handler['js_url'] ) ) {
 					wp_enqueue_script( 'uag-script', $file_handler['js_url'], array(), UAGB_VER, true );
@@ -193,7 +198,7 @@ if ( ! class_exists( 'UAGB_Helper' ) ) {
 
 			ob_start();
 			?>
-			<script type="text/javascript" id="uagb-script-frontend">( function( $ ) { <?php echo self::$script; ?> })(jQuery) </script>
+			<script type="text/javascript" id="uagb-script-frontend">document.addEventListener("DOMContentLoaded", function(){( function( $ ) { <?php echo self::$script; //phpcs:ignore WordPress.XSS.EscapeOutput.OutputNotEscaped ?> })(jQuery)})</script>
 			<?php
 			ob_end_flush();
 		}
@@ -219,7 +224,7 @@ if ( ! class_exists( 'UAGB_Helper' ) ) {
 
 			ob_start();
 			?>
-			<style type="text/css" media="all" id="uagb-style-frontend"><?php echo self::$stylesheet; ?></style>
+			<style id="uagb-style-frontend"><?php echo self::$stylesheet; //phpcs:ignore WordPress.XSS.EscapeOutput.OutputNotEscaped ?></style>
 			<?php
 			ob_end_flush();
 		}
@@ -257,7 +262,7 @@ if ( ! class_exists( 'UAGB_Helper' ) ) {
 			if ( ! empty( $subsets ) ) {
 				$link .= '&amp;subset=' . implode( ',', $subsets );
 			}
-			echo '<link href="//fonts.googleapis.com/css?family=' . esc_attr( str_replace( '|', '%7C', $link ) ) . '" rel="stylesheet">';
+			echo '<link href="//fonts.googleapis.com/css?family=' . esc_attr( str_replace( '|', '%7C', $link ) ) . '" rel="stylesheet">'; //phpcs:ignore WordPress.WP.EnqueuedResources.NonEnqueuedStylesheet 
 		}
 
 
@@ -269,11 +274,10 @@ if ( ! class_exists( 'UAGB_Helper' ) ) {
 		 * @since 0.0.1
 		 */
 		public static function generate_css( $selectors, $id ) {
-
 			$styling_css = '';
 
 			if ( empty( $selectors ) ) {
-				return;
+				return '';
 			}
 
 			foreach ( $selectors as $key => $value ) {
@@ -287,14 +291,18 @@ if ( ! class_exists( 'UAGB_Helper' ) ) {
 					}
 
 					if ( ! empty( $val ) || 0 === $val ) {
-						$css .= $j . ': ' . $val . ';';
+						if ( 'font-family' === $j ) {
+							$css .= $j . ': "' . $val . '";';
+						} else {
+							$css .= $j . ': ' . $val . ';';
+						}
 					}
 				}
 
 				if ( ! empty( $css ) ) {
-					$styling_css .= $id;
-					$styling_css .= $key . '{';
-					$styling_css .= $css . '}';
+					$styling_css     .= $id;
+					$styling_css     .= $key . '{';
+						$styling_css .= $css . '}';
 				}
 			}
 
@@ -319,7 +327,7 @@ if ( ! class_exists( 'UAGB_Helper' ) ) {
 		public static function get_css_value( $value = '', $unit = '' ) {
 
 			// @codingStandardsIgnoreStart
-			
+
 			if ( '' == $value ) {
 				return $value;
 			}
@@ -351,7 +359,7 @@ if ( ! class_exists( 'UAGB_Helper' ) ) {
             $block_id = '';
 
             if( ! isset( $name ) ) {
-                return;
+                return '';
             }
 
             if ( isset( $block['attrs'] ) && is_array( $block['attrs'] ) ) {
@@ -385,7 +393,11 @@ if ( ! class_exists( 'UAGB_Helper' ) ) {
                 case 'uagb/buttons':
                     $css += UAGB_Block_Helper::get_buttons_css( $blockattr, $block_id );
                     UAGB_Block_Helper::blocks_buttons_gfont( $blockattr );
-                    break;
+					break;
+
+				case 'uagb/buttons-child':
+					$css += UAGB_Block_Helper::get_buttons_child_css( $blockattr, $block_id );
+					break;
 
                 case 'uagb/blockquote':
                     $css += UAGB_Block_Helper::get_blockquote_css( $blockattr, $block_id );
@@ -405,6 +417,10 @@ if ( ! class_exists( 'UAGB_Helper' ) ) {
                 case 'uagb/social-share':
                     $css += UAGB_Block_Helper::get_social_share_css( $blockattr, $block_id );
                     break;
+
+                case 'uagb/social-share-child':
+					$css += UAGB_Block_Helper::get_social_share_child_css( $blockattr, $block_id );
+					break;
 
                 case 'uagb/content-timeline':
                     $css += UAGB_Block_Helper::get_content_timeline_css( $blockattr, $block_id );
@@ -429,7 +445,11 @@ if ( ! class_exists( 'UAGB_Helper' ) ) {
                 case 'uagb/icon-list':
                     $css += UAGB_Block_Helper::get_icon_list_css( $blockattr, $block_id );
                      UAGB_Block_Helper::blocks_icon_list_gfont( $blockattr );
-                    break;
+					break;
+					
+				case 'uagb/icon-list-child':
+					$css += UAGB_Block_Helper::get_icon_list_child_css( $blockattr, $block_id );
+					break;
 
                 case 'uagb/post-grid':
                     $css += UAGB_Block_Helper::get_post_grid_css( $blockattr, $block_id );
@@ -534,15 +554,11 @@ if ( ! class_exists( 'UAGB_Helper' ) ) {
 					);
 					self::$gfonts[ $font_family ] = $add_font;
 				} else {
-					if ( isset( $font_weight ) && ! empty( $font_weight ) ) {
-						if ( ! in_array( $font_weight, self::$gfonts[ $font_family ]['fontvariants'], true ) ) {
-							array_push( self::$gfonts[ $font_family ]['fontvariants'], $font_weight );
-						}
+					if ( isset( $font_weight ) && ! empty( $font_weight ) && ! in_array( $font_weight, self::$gfonts[ $font_family ]['fontvariants'], true ) ) {
+						array_push( self::$gfonts[ $font_family ]['fontvariants'], $font_weight );
 					}
-					if ( isset( $font_subset ) && ! empty( $font_subset ) ) {
-						if ( ! in_array( $font_subset, self::$gfonts[ $font_family ]['fontsubsets'], true ) ) {
-							array_push( self::$gfonts[ $font_family ]['fontsubsets'], $font_subset );
-						}
+					if ( isset( $font_subset ) && ! empty( $font_subset ) && ! in_array( $font_subset, self::$gfonts[ $font_family ]['fontsubsets'], true ) ) {
+						array_push( self::$gfonts[ $font_family ]['fontsubsets'], $font_subset );
 					}
 				}
 			}
@@ -564,7 +580,7 @@ if ( ! class_exists( 'UAGB_Helper' ) ) {
             $js  = '';
 
             if( ! isset( $name ) ) {
-                return;
+                return '';
             }
 
             if ( isset( $block['attrs'] ) && is_array( $block['attrs'] ) ) {
@@ -660,8 +676,7 @@ if ( ! class_exists( 'UAGB_Helper' ) ) {
 				}
 
 				if ( is_object( $this_post ) ) {
-					$this->_generate_stylesheet( $this_post );
-					return;
+					$this->get_generated_stylesheet( $this_post );
 				}
 			}
 
@@ -674,14 +689,22 @@ if ( ! class_exists( 'UAGB_Helper' ) ) {
 					return;
 				}
 
-				$this->_generate_stylesheet( $this_post );
+				/**
+				 * Filters the post to build stylesheet for.
+				 *
+				 * @param \WP_Post $this_post The global post.
+				 */
+				$this_post = apply_filters( 'uagb_post_for_stylesheet', $this_post );
+
+				$this->get_generated_stylesheet( $this_post );
 
 			} elseif ( is_archive() || is_home() || is_search() ) {
 
 				global $wp_query;
+				$cached_wp_query = $wp_query;
 
-				foreach ( $wp_query as $post ) {
-					$this->_generate_stylesheet( $post );
+				foreach ( $cached_wp_query as $post ) { // phpcs:ignore WordPress.WP.GlobalVariablesOverride.Prohibited
+					$this->get_generated_stylesheet( $post );
 				}
 			}
 
@@ -694,7 +717,7 @@ if ( ! class_exists( 'UAGB_Helper' ) ) {
 		 * @param object $this_post Current Post Object.
 		 * @since 1.7.0
 		 */
-		public function _generate_stylesheet( $this_post ) {
+		public function get_generated_stylesheet( $this_post ) {
 
 			if ( ! is_object( $this_post ) ) {
 				return;
@@ -704,19 +727,16 @@ if ( ! class_exists( 'UAGB_Helper' ) ) {
 				return;
 			}
 
-			if ( has_blocks( $this_post->ID ) ) {
+			if ( has_blocks( $this_post->ID ) && isset( $this_post->post_content ) ) {
 
-				if ( isset( $this_post->post_content ) ) {
+				$blocks            = $this->parse( $this_post->post_content );
+				self::$page_blocks = $blocks;
 
-					$blocks            = $this->parse( $this_post->post_content );
-					self::$page_blocks = $blocks;
-
-					if ( ! is_array( $blocks ) || empty( $blocks ) ) {
-						return;
-					}
-
-					self::$stylesheet .= $this->get_stylesheet( $blocks );
+				if ( ! is_array( $blocks ) || empty( $blocks ) ) {
+					return;
 				}
+
+				self::$stylesheet .= $this->get_stylesheet( $blocks );
 			}
 		}
 
@@ -1017,7 +1037,6 @@ if ( ! class_exists( 'UAGB_Helper' ) ) {
 		 *
 		 * @since 1.8.1
 		 * @param  array $icon Decoded fontawesome json file data.
-		 * @return string
 		 */
 		public static function render_svg_html( $icon ) {
 			$icon = str_replace( 'far', '', $icon );
@@ -1033,8 +1052,9 @@ if ( ! class_exists( 'UAGB_Helper' ) ) {
 			if ( $view ) {
 				$view = implode( ' ', $view );
 			}
-			$htm = '<svg xmlns="http://www.w3.org/2000/svg" viewBox= "' . $view . '"><path d="' . $path . '"></path></svg>';
-			return $htm;
+			?>
+			<svg xmlns="https://www.w3.org/2000/svg" viewBox= "<?php echo esc_html( $view ); ?>"><path d="<?php echo esc_html( $path ); ?>"></path></svg>
+			<?php
 		}
 
 		/**
@@ -1063,6 +1083,26 @@ if ( ! class_exists( 'UAGB_Helper' ) ) {
 					'terms'    => $attributes['categories'],
 					'operator' => 'IN',
 				);
+			}
+
+			if ( isset( $attributes['postPagination'] ) && true === $attributes['postPagination'] ) {
+
+				if ( get_query_var( 'paged' ) ) {
+
+					$paged = get_query_var( 'paged' );
+
+				} elseif ( get_query_var( 'page' ) ) {
+
+					$paged = get_query_var( 'page' );
+
+				} else {
+
+					$paged = 1;
+
+				}
+				$query_args['posts_per_page'] = $attributes['postsToShow'];
+				$query_args['paged']          = $paged;
+
 			}
 
 			$query_args = apply_filters( "uagb_post_query_args_{$block_type}", $query_args, $attributes );
@@ -1302,16 +1342,17 @@ if ( ! class_exists( 'UAGB_Helper' ) ) {
 		 */
 		public static function create_specific_stylesheet() {
 
-			$saved_blocks        = self::get_admin_settings_option( '_uagb_blocks' );
-			$combined            = array();
-			$is_already_post     = false;
-			$is_already_timeline = false;
-			$is_already_column   = false;
+			$saved_blocks         = self::get_admin_settings_option( '_uagb_blocks' );
+			$combined             = array();
+			$is_already_post      = false;
+			$is_already_timeline  = false;
+			$is_already_column    = false;
+			$is_already_icon_list = false;
+			$is_already_button    = false;
 
 			foreach ( UAGB_Config::$block_attributes as $key => $block ) {
 
 				$block_name = str_replace( 'uagb/', '', $key );
-				$slug       = $block_name;
 
 				if ( isset( $saved_blocks[ $block_name ] ) && 'disabled' === $saved_blocks[ $block_name ] ) {
 					continue;
@@ -1334,6 +1375,23 @@ if ( ! class_exists( 'UAGB_Helper' ) ) {
 							$combined[]        = 'column';
 							$combined[]        = 'columns';
 							$is_already_column = true;
+						}
+						break;
+
+					case 'icon-list':
+					case 'icon-list-child':
+						if ( ! $is_already_icon_list ) {
+							$combined[]           = 'icon-list';
+							$combined[]           = 'icon-list-child';
+							$is_already_icon_list = true;
+						}
+						break;
+					case 'buttons-child':
+					case 'buttons':
+						if ( ! $is_already_button ) {
+							$combined[]        = 'buttons';
+							$combined[]        = 'buttons-child';
+							$is_already_button = true;
 						}
 						break;
 
@@ -1360,12 +1418,13 @@ if ( ! class_exists( 'UAGB_Helper' ) ) {
 
 			$style = '';
 
-			foreach ( $combined as $key => $c_block ) {
+			$wp_filesystem = self::get_instance()->get_filesystem();
 
-				$style .= self::get_instance()->get_filesystem()->get_contents( plugin_dir_path( UAGB_FILE ) . 'assets/css/blocks/' . $c_block . '.css' );
+			foreach ( $combined as $key => $c_block ) {
+				$style .= $wp_filesystem->get_contents( plugin_dir_path( UAGB_FILE ) . 'assets/css/blocks/' . $c_block . '.css' );
 
 			}
-			self::get_instance()->get_filesystem()->put_contents( $combined_path, $style, FS_CHMOD_FILE );
+			$wp_filesystem->put_contents( $combined_path, $style, FS_CHMOD_FILE );
 		}
 
 		/**
@@ -1395,9 +1454,10 @@ if ( ! class_exists( 'UAGB_Helper' ) ) {
 			// Create the upload dir if it doesn't exist.
 			if ( ! file_exists( $dir_info['path'] ) ) {
 				// Create the directory.
-				self::get_instance()->get_filesystem()->mkdir( $dir_info['path'] );
+				$wp_filesystem = self::get_instance()->get_filesystem();
+				$wp_filesystem->mkdir( $dir_info['path'] );
 				// Add an index file for security.
-				self::get_instance()->get_filesystem()->put_contents( $dir_info['path'] . 'index.html', '', FS_CHMOD_FILE );
+				$wp_filesystem->put_contents( $dir_info['path'] . 'index.html', '', FS_CHMOD_FILE );
 			}
 
 			return apply_filters( 'uag_get_upload_dir', $dir_info );
@@ -1409,11 +1469,11 @@ if ( ! class_exists( 'UAGB_Helper' ) ) {
 		 * @return bool
 		 */
 		public static function is_ssl() {
-			if ( is_ssl() ) {
-				return true;
-			} elseif ( 0 === stripos( get_option( 'siteurl' ), 'https://' ) ) {
-				return true;
-			} elseif ( isset( $_SERVER['HTTP_X_FORWARDED_PROTO'] ) && 'https' === $_SERVER['HTTP_X_FORWARDED_PROTO'] ) {
+			if (
+				is_ssl() ||
+				( 0 === stripos( get_option( 'siteurl' ), 'https://' ) ) ||
+				( isset( $_SERVER['HTTP_X_FORWARDED_PROTO'] ) && 'https' === $_SERVER['HTTP_X_FORWARDED_PROTO'] )
+			) {
 				return true;
 			}
 			return false;
@@ -1461,7 +1521,7 @@ if ( ! class_exists( 'UAGB_Helper' ) ) {
 		 */
 		public static function file_write( $style_data, $type ) {
 
-			$post_timestamp = get_post_meta( get_the_ID(), 'uagb_style_timestamp-' . $type, true );
+			$post_timestamp = get_post_meta( get_the_ID(), 'uag_style_timestamp-' . $type, true );
 
 			$var = ( 'css' === $type ) ? 'css' : 'js';
 
@@ -1477,7 +1537,7 @@ if ( ! class_exists( 'UAGB_Helper' ) ) {
 					self::get_instance()->get_filesystem()->put_contents( $assets_info[ $var ], $style_data, FS_CHMOD_FILE );
 
 					// Update the post meta.
-					update_post_meta( get_the_ID(), 'uagb_style_timestamp-' . $type, $timestamp );
+					update_post_meta( get_the_ID(), 'uag_style_timestamp-' . $type, $timestamp );
 
 					if ( is_array( self::$css_file_handler ) ) {
 						self::$css_file_handler = array_merge( self::$css_file_handler, $assets_info );
@@ -1509,7 +1569,7 @@ if ( ! class_exists( 'UAGB_Helper' ) ) {
 							self::get_instance()->get_filesystem()->put_contents( $new_assets_info[ $var ], $style_data, FS_CHMOD_FILE );
 
 							// Update the post meta.
-							update_post_meta( get_the_ID(), 'uagb_style_timestamp-' . $type, $new_timestamp );
+							update_post_meta( get_the_ID(), 'uag_style_timestamp-' . $type, $new_timestamp );
 
 							// Delete old file.
 							wp_delete_file( $assets_info[ $var ] );
@@ -1560,6 +1620,143 @@ if ( ! class_exists( 'UAGB_Helper' ) ) {
 			WP_Filesystem();
 
 			return $wp_filesystem;
+		}
+
+		/**
+		 * Check if UAG upload folder has write permissions or not.
+		 *
+		 * @since  1.14.9
+		 * @return bool true or false.
+		 */
+		public static function has_read_write_permissions() {
+
+			$upload_dir = self::get_upload_dir();
+
+			$file_created = self::get_instance()->get_filesystem()->put_contents( $upload_dir['path'] . 'index.html', '' );
+
+			if ( ! $file_created ) {
+
+				return false;
+			}
+
+			return true;
+		}
+		/**
+		 * Gives the paged Query var.
+		 *
+		 * @param Object $query Query.
+		 * @return int $paged Paged Query var.
+		 * @since 1.14.9
+		 */
+		public static function get_paged( $query ) {
+
+			global $paged;
+
+			// Check the 'paged' query var.
+			$paged_qv = $query->get( 'paged' );
+
+			if ( is_numeric( $paged_qv ) ) {
+				return $paged_qv;
+			}
+
+			// Check the 'page' query var.
+			$page_qv = $query->get( 'page' );
+
+			if ( is_numeric( $page_qv ) ) {
+				return $page_qv;
+			}
+
+			// Check the $paged global?
+			if ( is_numeric( $paged ) ) {
+				return $paged;
+			}
+
+			return 0;
+		}
+		/**
+		 * Builds the base url.
+		 *
+		 * @param string $permalink_structure Premalink Structure.
+		 * @param string $base Base.
+		 * @since 1.14.9
+		 */
+		public static function build_base_url( $permalink_structure, $base ) {
+			// Check to see if we are using pretty permalinks.
+			if ( ! empty( $permalink_structure ) ) {
+
+				if ( strrpos( $base, 'paged-' ) ) {
+					$base = substr_replace( $base, '', strrpos( $base, 'paged-' ), strlen( $base ) );
+				}
+
+				// Remove query string from base URL since paginate_links() adds it automatically.
+				// This should also fix the WPML pagination issue that was added since 1.10.2.
+				if ( count( $_GET ) > 0 ) { // phpcs:ignore WordPress.Security.NonceVerification.Recommended
+					$base = strtok( $base, '?' );
+				}
+
+				// Add trailing slash when necessary.
+				if ( '/' === substr( $permalink_structure, -1 ) ) {
+					$base = trailingslashit( $base );
+				} else {
+					$base = untrailingslashit( $base );
+				}
+			} else {
+				$url_params = wp_parse_url( $base, PHP_URL_QUERY );
+
+				if ( empty( $url_params ) ) {
+					$base = trailingslashit( $base );
+				}
+			}
+
+			return $base;
+		}
+		/**
+		 * Returns the Paged Format.
+		 *
+		 * @param string $permalink_structure Premalink Structure.
+		 * @param string $base Base.
+		 * @since 1.14.9
+		 */
+		public static function paged_format( $permalink_structure, $base ) {
+
+			$page_prefix = empty( $permalink_structure ) ? 'paged' : 'page';
+
+			if ( ! empty( $permalink_structure ) ) {
+				$format  = substr( $base, -1 ) !== '/' ? '/' : '';
+				$format .= $page_prefix . '/';
+				$format .= '%#%';
+				$format .= substr( $permalink_structure, -1 ) === '/' ? '/' : '';
+			} elseif ( empty( $permalink_structure ) || is_search() ) {
+				$parse_url = wp_parse_url( $base, PHP_URL_QUERY );
+				$format    = empty( $parse_url ) ? '?' : '&';
+				$format   .= $page_prefix . '=%#%';
+			}
+
+			return $format;
+		}
+		/**
+		 * Disable canonical on Single Post.
+		 *
+		 * @param  string $redirect_url  The redirect URL.
+		 * @param  string $requested_url The requested URL.
+		 * @since  1.14.9
+		 * @return bool|string
+		 */
+		public function override_canonical( $redirect_url, $requested_url ) {
+
+			global $wp_query;
+
+			if ( is_array( $wp_query->query ) ) {
+
+				if ( true === $wp_query->is_singular
+					&& - 1 === $wp_query->current_post
+					&& true === $wp_query->is_paged
+				) {
+					$redirect_url = false;
+				}
+			}
+
+			return $redirect_url;
 		}
 	}
 

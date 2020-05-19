@@ -4,8 +4,8 @@ Donate link: https://www.paypal.me/BrainstormForce
 Tags: gutenberg, blocks, gutenberg blocks, editor, block
 Requires at least: 4.7
 Requires PHP: 5.6
-Tested up to: 5.3.2
-Stable tag: 1.14.7
+Tested up to: 5.4
+Stable tag: 1.14.11
 License: GPLv2 or later
 License URI: https://www.gnu.org/licenses/gpl-2.0.html
 
@@ -40,7 +40,7 @@ These Gutenberg starter sites give you -
 
 <strong>FREE And Popular Gutenberg Compatible Theme</strong>
 
-Over 600,000+ users are empowering their websites with Astra - 100% Gutenberg compatible theme! From beginners to industry experts, everyone is loving Astra for its performance and ease of use.
+Over 800,000+ users are empowering their websites with Astra - 100% Gutenberg compatible theme! From beginners to industry experts, everyone is loving Astra for its performance and ease of use.
 
 Reasons why people love the Astra Theme
 
@@ -154,6 +154,50 @@ When you use the Ultimate Addons for Gutenberg along with the free Astra theme, 
 1. /assets/screenshots/1.png
 
 == Changelog ==
+
+= 1.14.11 =
+* Fix: File Generation issue on WooCommerce Pages.
+* Fix: Advanced Columns - Handled background image attachment type on smaller devices.
+* Fix: Section - Handled background image attachment type on smaller devices.
+* Fix: Icon List - Links overlapping on the Label text.
+* Fix: Icon List - Label length mismatch issue when Image is used for the Icon List.
+* Fix: Multi Buttons - Spacing not working in the editor.
+* Fix: Multi Buttons - Full-Width feature glitch fixed.
+* Fix: Multi Buttons - Alignment option shifted to the side panel.
+* Fix: Table of Content - Extra space at the bottom in the Safari Browser when the Column count is more than 1.
+
+= 1.14.10 =
+* Fix: Icon List - Typography not working on front-end.
+* Fix: Multi Buttons - Changed default alignment to center.
+* Fix: Social Share - Changed default alignment to center.
+* Fix: Team - Fixed the Margin issue in Social Share icons.
+
+= 1.14.9 =
+* Improvement: Better options for delete/edit/duplicate action of each item in Icon List, Multi Buttons and Social Share blocks.
+* Improvement: Post Grid - Added Pagination support.
+* Improvement: Added WPML compatibility.
+* Improvement: Added Box Shadow option to Advanced Columns and Section.
+* Improvement: UI improvement for editor.
+* Improvement: Table of Contents - Color options for Bullet Points.
+* Improvement: Improved CSS File Generation functionality.
+* Improvement: Improved file system functions.
+* Fix: Advanced Columns : Percentage button not clickable in editor mode.
+* Fix: Advanced Columns : Column width not applying in the editor.
+* Fix: Astra Theme activation issue.
+* Fix: Table of Contents - Handle UTF-8 Character for URL.
+* Fix: Table of Contents - Handled HTML and other special characters in Heading.
+* Fix: Post Timeline - Timeline Layout for Left/Right messed up issue fixed.
+* Fix: Post Carousel - Border radius not working.
+* Fix: UI improvement on UAG Admin Setting page.
+
+= 1.14.8 =
+* Improvement: Inline CSS generation markup as per w3c standards.
+* Improvement: Hardened the security of the plugin.
+* Improvement: Compatibility with Toolset Views.
+* Fix: Table of Contents - Scroll to Top issue in some scenarios.
+* Fix: Font Families not applying if it's name contains a space.
+* Fix: Undefined constant FS_CHMOD_FILE issue.
+* Fix: WP Rocket - "javascript defered without safe mode jQuery" compatibility.
 
 = 1.14.7 =
 * Improvement: Post - Post Title tag can be span/p.

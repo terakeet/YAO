@@ -94,10 +94,17 @@ if ( ! defined( 'ABSPATH' ) ) {
 		<div class="ast-actioms-wrap">
 			<# if( Object.keys( data['errors'] ).length ) { #>
 				<a href="#" class="button button-hero button-primary astra-demo-import disabled site-install-site-button"><?php esc_html_e( 'Skip & Import', 'astra-sites' ); ?></a>
-			<# } else { #>
-				<a href="#" class="button button-hero button-primary astra-sites-skip-and-import-step"><?php esc_html_e( 'Skip & Import', 'astra-sites' ); ?></a>
+				<div class="button button-hero site-import-cancel"><?php esc_html_e( 'Cancel', 'astra-sites' ); ?></div>
+			<# } else {
+				var plugin_update = data['warnings']['update-available'] || 0;
+				if( plugin_update ) { #>
+					<a href="<?php echo esc_url( network_admin_url( 'update-core.php' ) ); ?>" class="button button-hero button-primary" target="_blank"><?php esc_html_e( 'Update', 'astra-sites' ); ?></a>
+					<a href="#" class="button button-hero button-primary astra-sites-skip-and-import-step"><?php esc_html_e( 'Skip & Import', 'astra-sites' ); ?></a>
+				<# } else { #>
+					<a href="#" class="button button-hero button-primary astra-sites-skip-and-import-step"><?php esc_html_e( 'Skip & Import', 'astra-sites' ); ?></a>
+					<div class="button button-hero site-import-cancel"><?php esc_html_e( 'Cancel', 'astra-sites' ); ?></div>
+				<# } #>
 			<# } #>
-			<div class="button button-hero site-import-cancel"><?php esc_html_e( 'Cancel', 'astra-sites' ); ?></div>
 		</div>
 	</div>
 
@@ -463,33 +470,6 @@ if ( ! defined( 'ABSPATH' ) ) {
 
 <?php
 /**
- * TMPL - Update Available Plugins
- */
-?>
-<script type="text/template" id="tmpl-astra-sites-update-available-required-plugins">
-	<div class="skip-and-import">
-		<div class="heading">
-			<h3><?php esc_html_e( 'Update Plugin', 'astra-sites' ); ?></h3>
-			<span class="dashicons close dashicons-no-alt"></span>
-		</div>
-		<div class="astra-sites-import-content">
-			<p><?php esc_html_e( 'Updates are available for plugins used in this starter template.', 'astra-sites' ); ?></p>
-			<p><?php esc_html_e( 'Kindly update them for a successful import. Skipping this step might break the template design/feature.', 'astra-sites' ); ?></p>
-			<ul class="astra-sites-third-party-required-plugins">
-				<# for ( key in data ) { #>
-					<li class="plugin-card plugin-card-{{data[ key ].slug}}'" data-slug="{{data[ key ].slug }}" data-init="{{data[ key ].init}}" data-name="{{data[ key ].name}}">{{data[ key ].name}}</li>
-				<# } #>
-			</ul>
-		</div>
-		<div class="ast-actioms-wrap">
-			<a href="#" class="button button-hero button-primary astra-sites-skip-and-import-step"><?php esc_html_e( 'Skip & Import', 'astra-sites' ); ?></a>
-			<div class="button button-hero site-import-cancel"><?php esc_html_e( 'Cancel', 'astra-sites' ); ?></div>
-		</div>
-	</div>
-</script>
-
-<?php
-/**
  * TMPL - Third Party Required Plugins
  */
 ?>
@@ -571,7 +551,7 @@ if ( ! defined( 'ABSPATH' ) ) {
 			<div class="single-site-footer">
 				<div class="site-action-buttons-wrap">
 					<?php $white_label_class = ( Astra_Sites_White_Label::get_instance()->get_white_label_name() !== ASTRA_SITES_NAME ) ? 'ast-white-label-flag' : ''; ?>
-					<a href="{{data['astra-site-url']}}" class="button button-hero site-preview-button <?php echo esc_html( $white_label_class ); ?>" target="_blank">Preview "{{{data['title']}}}" Site <i class="dashicons dashicons-external"></i></a>
+					<a href="{{data['astra-site-url']}}/" class="button button-hero site-preview-button <?php echo esc_html( $white_label_class ); ?>" target="_blank">Preview "{{{data['title']}}}" Site <i class="dashicons dashicons-external"></i></a>
 					<div class="site-action-buttons-right">
 						<# if( 'free' !== data['astra-sites-type'] && '' !== astraSitesVars.license_page_builder && data['astra-site-page-builder'] !== astraSitesVars.license_page_builder && ( 'brizy' !== data['astra-site-page-builder'] && 'gutenberg' !== data['astra-site-page-builder']  ) ) { #>
 							<a class="button button-hero button-primary disabled astra-sites-invalid-mini-agency-license-button"><?php esc_html_e( 'Not Valid License', 'astra-sites' ); ?></a>
@@ -603,6 +583,7 @@ if ( ! defined( 'ABSPATH' ) ) {
 		<p><b><?php esc_html_e( 'Hurray! The Website Imported Successfully! 🎉', 'astra-sites' ); ?></b></p>
 		<p><?php esc_html_e( 'Go ahead, customize the text, images and design to make it yours!', 'astra-sites' ); ?></p>
 		<p><?php esc_html_e( 'Have fun!', 'astra-sites' ); ?></p>
+		<p><?php esc_html_e( 'PS: We try our best to use images that are free from legal perspectives. However, we do not take any responsibility. We strongly advise website owners to replace the images and any copyrighted media before publishing them online.', 'astra-sites' ); ?></p>
 	</div>
 	<div class="ast-actioms-wrap">
 		<a class="button button-primary button-hero" href="<?php echo esc_url( site_url() ); ?>" target="_blank"><?php esc_html_e( 'View Site', 'astra-sites' ); ?> <i class="dashicons dashicons-external"></i></a>
@@ -618,6 +599,7 @@ if ( ! defined( 'ABSPATH' ) ) {
 		<p><b><?php esc_html_e( 'Hurray! The Template Imported Successfully! 🎉', 'astra-sites' ); ?></b></p>
 		<p><?php esc_html_e( 'Go ahead, customize the text, images and design to make it yours!', 'astra-sites' ); ?></p>
 		<p><?php esc_html_e( 'Have fun!', 'astra-sites' ); ?></p>
+		<p><?php esc_html_e( 'PS: We try our best to use images that are free from legal perspectives. However, we do not take any responsibility. We strongly advise website owners to replace the images and any copyrighted media before publishing them online.', 'astra-sites' ); ?></p>
 	</div>
 	<div class="ast-actioms-wrap">
 		<a class="button button-primary button-hero" href="{{data['link']}}" target="_blank"><?php esc_html_e( 'View Template', 'astra-sites' ); ?> <i class="dashicons dashicons-external"></i></a>
@@ -689,7 +671,7 @@ if ( ! defined( 'ABSPATH' ) ) {
 										<label>
 											<input type="checkbox" name="reset" class="checkbox">
 											<strong><?php esc_html_e( 'Delete Previously Imported Site', 'astra-sites' ); ?></strong>
-											<div class="astra-sites-tooltip-message" id="astra-sites-tooltip-reset-data" style="display: none;"><p><?php esc_html_e( 'WARNING: Selecting this option will delete all data from the previous import. Choose this option only if this is intended.', 'astra-sites' ); ?></p></div>
+											<div class="astra-sites-tooltip-message" id="astra-sites-tooltip-reset-data" style="display: none;"><p><?php esc_html_e( 'WARNING: Selecting this option will delete all data from the previous import. Choose this option only if this is intended.', 'astra-sites' ); ?></p><p><?php esc_html_e( 'You can find the backup to the current customizer settings at ', 'astra-sites' ); ?><code><?php esc_html_e( '/wp-content/uploads/astra-sites/', 'astra-sites' ); ?></code></p></div>
 										</label>
 									</li>
 
@@ -718,6 +700,19 @@ if ( ! defined( 'ABSPATH' ) ) {
 										</label>
 									</li>
 
+								<# } #>
+
+								<# if( 'astra-sites' === data && 'elementor' == astraSitesVars.default_page_builder ) { #>
+									<li class="astra-sites-import-elementor-kit">
+										<label>
+											<input type="checkbox" name="elmentor-kit" checked="checked" class="checkbox">
+											<strong><?php esc_html_e( 'Import Elementor Style Kit', 'astra-sites' ); ?></strong>
+										</label>
+										<span class="astra-sites-tooltip-icon" data-tip-id="astra-sites-tooltip-elementor-kit"><span class="dashicons dashicons-editor-help"></span></span>
+										<div class="astra-sites-tooltip-message" id="astra-sites-tooltip-elementor-kit" style="display: none;">
+											<p><?php esc_html_e( 'This demo is built using Elementor Style Kit. By unchecking this the styles won\'t appear exactly like shown in the preview.', 'astra-sites' ); ?></p>
+									</div>
+									</li>
 								<# } #>
 
 								<# if( 'astra-sites' === data ) { #>

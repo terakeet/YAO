@@ -127,6 +127,7 @@ if ( ! class_exists( 'Astra_Sites_Batch_Processing' ) ) :
 			add_action( 'wp_ajax_astra-sites-import-page-builders', array( $this, 'import_page_builders' ) );
 			add_action( 'wp_ajax_astra-sites-import-blocks', array( $this, 'import_blocks' ) );
 			add_action( 'wp_ajax_astra-sites-get-sites-request-count', array( $this, 'sites_requests_count' ) );
+			add_action( 'wp_ajax_astra-sites-get-blocks-request-count', array( $this, 'blocks_requests_count' ) );
 			add_action( 'wp_ajax_astra-sites-import-sites', array( $this, 'import_sites' ) );
 		}
 
@@ -181,8 +182,13 @@ if ( ! class_exists( 'Astra_Sites_Batch_Processing' ) ) :
 		 * @return void
 		 */
 		public function import_blocks() {
-			Astra_Sites_Batch_Processing_Importer::get_instance()->import_blocks();
-			wp_send_json_success();
+			$page_no = isset( $_POST['page_no'] ) ? absint( $_POST['page_no'] ) : ''; // phpcs:ignore WordPress.Security.NonceVerification.Missing
+			if ( $page_no ) {
+				$sites_and_pages = Astra_Sites_Batch_Processing_Importer::get_instance()->import_blocks( $page_no );
+				wp_send_json_success();
+			}
+
+			wp_send_json_error();
 		}
 
 		/**
@@ -230,6 +236,23 @@ if ( ! class_exists( 'Astra_Sites_Batch_Processing' ) ) :
 		}
 
 		/**
+		 * Blocks Requests Count
+		 *
+		 * @since 2.1.0
+		 * @return void
+		 */
+		public function blocks_requests_count() {
+
+			// Get count.
+			$total_requests = $this->get_total_blocks_requests();
+			if ( $total_requests ) {
+				wp_send_json_success( $total_requests );
+			}
+
+			wp_send_json_error();
+		}
+
+		/**
 		 * Update Library Complete
 		 *
 		 * @since 2.0.0
@@ -238,8 +261,8 @@ if ( ! class_exists( 'Astra_Sites_Batch_Processing' ) ) :
 		public function update_library_complete() {
 			Astra_Sites_Importer::get_instance()->update_latest_checksums();
 
-			update_option( 'astra-sites-batch-is-complete', 'no' );
-			update_option( 'astra-sites-manual-sync-complete', 'yes' );
+			update_site_option( 'astra-sites-batch-is-complete', 'no' );
+			update_site_option( 'astra-sites-manual-sync-complete', 'yes' );
 			wp_send_json_success();
 		}
 
@@ -251,7 +274,7 @@ if ( ! class_exists( 'Astra_Sites_Batch_Processing' ) ) :
 		 */
 		public function get_last_export_checksums() {
 
-			$old_last_export_checksums = get_option( 'astra-sites-last-export-checksums', '' );
+			$old_last_export_checksums = get_site_option( 'astra-sites-last-export-checksums', '' );
 
 			$new_last_export_checksums = $this->set_last_export_checksums();
 
@@ -290,7 +313,7 @@ if ( ! class_exists( 'Astra_Sites_Batch_Processing' ) ) :
 
 				// Set last export checksums.
 				if ( ! empty( $result['last_export_checksums'] ) ) {
-					update_option( 'astra-sites-last-export-checksums-latest', $result['last_export_checksums'] );
+					update_site_option( 'astra-sites-last-export-checksums-latest', $result['last_export_checksums'] );
 
 					$this->last_export_checksums = $result['last_export_checksums'];
 				}
@@ -331,7 +354,7 @@ if ( ! class_exists( 'Astra_Sites_Batch_Processing' ) ) :
 		 */
 		public function start_importer() {
 
-			$is_fresh_site = get_option( 'astra-sites-fresh-site', '' );
+			$is_fresh_site = get_site_option( 'astra-sites-fresh-site', '' );
 
 			// Process initially for the fresh user.
 			if ( isset( $_GET['reset'] ) ) { // phpcs:ignore WordPress.Security.NonceVerification.Recommended
@@ -350,7 +373,7 @@ if ( ! class_exists( 'Astra_Sites_Batch_Processing' ) ) :
 						$data = Astra_Sites::get_instance()->get_filesystem()->get_contents( $dir . '/' . $file_name );
 						if ( ! empty( $data ) ) {
 							$option_name = str_replace( '.json', '', $file_name );
-							update_option( $option_name, json_decode( $data, true ) );
+							update_site_option( $option_name, json_decode( $data, true ) );
 						}
 					}
 				}
@@ -359,7 +382,7 @@ if ( ! class_exists( 'Astra_Sites_Batch_Processing' ) ) :
 				// If batch failed then user have at least the data from the JSON file.
 				$this->process_batch();
 
-				update_option( 'astra-sites-fresh-site', 'yes' );
+				update_site_option( 'astra-sites-fresh-site', 'yes' );
 
 				// If not fresh user then trigger batch import on the transient and option
 				// Only on the Astra Sites page.
@@ -399,7 +422,7 @@ if ( ! class_exists( 'Astra_Sites_Batch_Processing' ) ) :
 			$status = Astra_Sites_Page::get_instance()->test_cron();
 			if ( is_wp_error( $status ) ) {
 				astra_sites_error_log( 'Error! Batch Not Start due to disabled cron events!' );
-				update_option( 'astra-sites-batch-status-string', 'Error! Batch Not Start due to disabled cron events!' );
+				update_site_option( 'astra-sites-batch-status-string', 'Error! Batch Not Start due to disabled cron events!' );
 
 				if ( defined( 'WP_CLI' ) ) {
 					WP_CLI::line( 'Error! Batch Not Start due to disabled cron events!' );
@@ -537,7 +560,7 @@ if ( ! class_exists( 'Astra_Sites_Batch_Processing' ) ) :
 				WP_CLI::line( $message );
 			} else {
 				astra_sites_error_log( $message );
-				update_option( 'astra-sites-batch-status-string', $message );
+				update_site_option( 'astra-sites-batch-status-string', $message );
 			}
 		}
 
@@ -551,7 +574,7 @@ if ( ! class_exists( 'Astra_Sites_Batch_Processing' ) ) :
 		public function process_import() {
 
 			// Batch is already started? Then return.
-			$status  = get_option( 'astra-sites-batch-status' );
+			$status  = get_site_option( 'astra-sites-batch-status' );
 			$expired = get_transient( 'astra-sites-import-check' );
 			if ( 'in-process' === $status ) {
 				return;
@@ -566,7 +589,7 @@ if ( ! class_exists( 'Astra_Sites_Batch_Processing' ) ) :
 			// For 1 week.
 			set_transient( 'astra-sites-import-check', 'true', apply_filters( 'astra_sites_sync_check_time', WEEK_IN_SECONDS ) );
 
-			update_option( 'astra-sites-batch-status', 'in-process' );
+			update_site_option( 'astra-sites-batch-status', 'in-process' );
 
 			// Process batch.
 			$this->process_batch();
@@ -580,20 +603,20 @@ if ( ! class_exists( 'Astra_Sites_Batch_Processing' ) ) :
 		public function get_total_requests() {
 
 			astra_sites_error_log( 'Getting Total Pages' );
-			update_option( 'astra-sites-batch-status-string', 'Getting Total Pages' );
+			update_site_option( 'astra-sites-batch-status-string', 'Getting Total Pages' );
 
 			$api_args = array(
 				'timeout' => 60,
 			);
 
-			$response = wp_remote_get( trailingslashit( Astra_Sites::get_instance()->get_api_domain() ) . '/wp-json/astra-sites/v1/get-total-pages/?per_page=15', $api_args );
+			$response = wp_remote_get( trailingslashit( Astra_Sites::get_instance()->get_api_domain() ) . 'wp-json/astra-sites/v1/get-total-pages/?per_page=15', $api_args );
 			if ( ! is_wp_error( $response ) || wp_remote_retrieve_response_code( $response ) === 200 ) {
 				$total_requests = json_decode( wp_remote_retrieve_body( $response ), true );
 
 				if ( isset( $total_requests['pages'] ) ) {
 
 					$this->log( 'Updated requests ' . $total_requests['pages'] );
-					update_option( 'astra-sites-requests', $total_requests['pages'] );
+					update_site_option( 'astra-sites-requests', $total_requests['pages'] );
 					Astra_Sites_Batch_Processing_Importer::get_instance()->generate_file( 'astra-sites-requests', $total_requests['pages'] );
 
 					return $total_requests['pages'];
@@ -601,7 +624,7 @@ if ( ! class_exists( 'Astra_Sites_Batch_Processing' ) ) :
 			}
 
 			astra_sites_error_log( 'Request Failed! Still Calling..' );
-			update_option( 'astra-sites-batch-status-string', 'Request Failed! Still Calling..' );
+			update_site_option( 'astra-sites-batch-status-string', 'Request Failed! Still Calling..' );
 
 			$this->get_total_requests();
 		}
@@ -614,26 +637,28 @@ if ( ! class_exists( 'Astra_Sites_Batch_Processing' ) ) :
 		public function get_total_blocks_requests() {
 
 			astra_sites_error_log( 'BLOCK: Getting Total Blocks' );
-			update_option( 'astra-sites-batch-status-string', 'Getting Total Blocks' );
+			update_site_option( 'astra-sites-batch-status-string', 'Getting Total Blocks' );
 
 			$api_args = array(
 				'timeout' => 60,
 			);
 
-			$response = wp_remote_get( trailingslashit( Astra_Sites::get_instance()->get_api_domain() ) . '/wp-json/astra-blocks/v1/get-total-blocks', $api_args );
+			$response = wp_remote_get( trailingslashit( Astra_Sites::get_instance()->get_api_domain() ) . 'wp-json/astra-blocks/v1/get-blocks-count', $api_args );
 			if ( ! is_wp_error( $response ) || wp_remote_retrieve_response_code( $response ) === 200 ) {
 				$total_requests = json_decode( wp_remote_retrieve_body( $response ), true );
 
-				astra_sites_error_log( 'BLOCK: Updated requests ' . $total_requests );
-				update_option( 'astra-blocks-batch-status-string', 'Updated requests ' . $total_requests );
+				if ( isset( $total_requests['pages'] ) ) {
+					astra_sites_error_log( 'BLOCK: Updated requests ' . $total_requests['pages'] );
+					update_site_option( 'astra-blocks-batch-status-string', 'Updated requests ' . $total_requests['pages'] );
 
-				update_option( 'astra-blocks-requests', $total_requests );
+					update_site_option( 'astra-blocks-requests', $total_requests['pages'] );
 
-				return $total_requests;
+					return $total_requests['pages'];
+				}
 			}
 
 			astra_sites_error_log( 'BLOCK: Request Failed! Still Calling..' );
-			update_option( 'astra-blocks-batch-status-string', 'Request Failed! Still Calling..' );
+			update_site_option( 'astra-blocks-batch-status-string', 'Request Failed! Still Calling..' );
 
 			$this->get_total_blocks_requests();
 		}
@@ -752,51 +777,70 @@ if ( ! class_exists( 'Astra_Sites_Batch_Processing' ) ) :
 		 */
 		public function start_process() {
 
-			Astra_Sites_Importer_Log::add( 'Batch Process Started!' );
+			$wxr_id = get_site_option( 'astra_sites_imported_wxr_id', 0 );
+			if ( $wxr_id ) {
+				wp_delete_attachment( $wxr_id, true );
+				astra_sites_error_log( 'Deleted Temporary WXR file ' . $wxr_id );
+				delete_option( 'astra_sites_imported_wxr_id' );
+				astra_sites_error_log( 'Option `astra_sites_imported_wxr_id` Deleted.' );
+			}
+
+			$classes = array();
+
+			Astra_Sites_Importer_Log::add( 'Batch Process Started..' );
 			Astra_Sites_Importer_Log::add( Astra_Sites_White_Label::get_instance()->get_white_label_name( ASTRA_SITES_NAME ) . ' - Importing Images for Blog name \'' . get_bloginfo( 'name' ) . '\' (' . get_current_blog_id() . ')' );
 
 			// Add "widget" in import [queue].
-			if ( class_exists( 'Astra_Sites_Batch_Processing_Widgets' ) ) {
-				self::$process_all->push_to_queue( Astra_Sites_Batch_Processing_Widgets::get_instance() );
-			}
+			$classes[] = Astra_Sites_Batch_Processing_Widgets::get_instance();
 
 			// Add "gutenberg" in import [queue].
-			self::$process_all->push_to_queue( Astra_Sites_Batch_Processing_Gutenberg::get_instance() );
+			$classes[] = Astra_Sites_Batch_Processing_Gutenberg::get_instance();
 
 			// Add "brizy" in import [queue].
 			if ( is_plugin_active( 'brizy/brizy.php' ) ) {
-				self::$process_all->push_to_queue( Astra_Sites_Batch_Processing_Brizy::get_instance() );
+				$classes[] = Astra_Sites_Batch_Processing_Brizy::get_instance();
 			}
 
 			// Add "bb-plugin" in import [queue].
 			// Add "beaver-builder-lite-version" in import [queue].
 			if ( is_plugin_active( 'beaver-builder-lite-version/fl-builder.php' ) || is_plugin_active( 'bb-plugin/fl-builder.php' ) ) {
-				self::$process_all->push_to_queue( Astra_Sites_Batch_Processing_Beaver_Builder::get_instance() );
+				$classes[] = Astra_Sites_Batch_Processing_Beaver_Builder::get_instance();
 			}
 
 			// Add "elementor" in import [queue].
 			// @todo Remove required `allow_url_fopen` support.
-			if ( ini_get( 'allow_url_fopen' ) ) {
-				if ( is_plugin_active( 'elementor/elementor.php' ) ) {
-					$import = new \Elementor\TemplateLibrary\Astra_Sites_Batch_Processing_Elementor();
-					self::$process_all->push_to_queue( $import );
-				}
-			} else {
-				Astra_Sites_Importer_Log::add( 'Couldn\'t not import image due to allow_url_fopen() is disabled!' );
+			if ( ini_get( 'allow_url_fopen' ) && is_plugin_active( 'elementor/elementor.php' ) ) {
+				$import    = new \Elementor\TemplateLibrary\Astra_Sites_Batch_Processing_Elementor();
+				$classes[] = $import;
 			}
 
 			// Add "astra-addon" in import [queue].
 			if ( is_plugin_active( 'astra-addon/astra-addon.php' ) ) {
-				if ( class_exists( 'Astra_Sites_Compatibility_Astra_Pro' ) ) {
-					self::$process_all->push_to_queue( Astra_Sites_Compatibility_Astra_Pro::get_instance() );
-				}
+				$classes[] = Astra_Sites_Compatibility_Astra_Pro::get_instance();
 			}
 
 			// Add "misc" in import [queue].
-			self::$process_all->push_to_queue( Astra_Sites_Batch_Processing_Misc::get_instance() );
+			$classes[] = Astra_Sites_Batch_Processing_Misc::get_instance();
 
-			// Dispatch Queue.
-			self::$process_all->save()->dispatch();
+			if ( defined( 'WP_CLI' ) ) {
+				WP_CLI::line( 'Batch Process Started..' );
+				// Process all classes.
+				foreach ( $classes as $key => $class ) {
+					if ( method_exists( $class, 'import' ) ) {
+						$class->import();
+					}
+				}
+				WP_CLI::line( 'Batch Process Complete!' );
+			} else {
+				// Add all classes to batch queue.
+				foreach ( $classes as $key => $class ) {
+					self::$process_all->push_to_queue( $class );
+				}
+
+				// Dispatch Queue.
+				self::$process_all->save()->dispatch();
+			}
+
 		}
 
 		/**
