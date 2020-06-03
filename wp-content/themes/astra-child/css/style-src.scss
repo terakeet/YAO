@@ -12,8 +12,10 @@ Template: astra
 
 $blue-dk:   #241f21;
 $blue-med:  #345261;
-$green:     #03b188;
-$yellow:    #f2cb44;
+$green:     #258c8c;
+$yellow:    #eaddb3;
+$white:     #ededeb;
+$tan:       #c1b6ac;
 $gray-100:  #f9f9f9;
 $gray-200:  #d9d9d9;
 $gray-300:  #a0a0a0;
@@ -222,5 +224,18 @@ blockquote {
     li {
       margin-bottom: 0;
     }
+  }
+}
+// change text styles within reversed dark/light area
+.dark-bg {
+  color: white;
+  p {
+    color: white;
+  }
+  a, a:link, a:visited {
+    color: $yellow;
+  }
+  a:hover, a:focus {
+    color: $white;
   }
 }
